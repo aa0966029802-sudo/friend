@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>好友默契大考驗 - 友情測驗</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: linear-gradient(135deg, #fce7f3 0%, #e0e7ff 50%, #ede9fe 100%);
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8 flex justify-center items-center">
+
+  <div class="w-full max-w-xl bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-6 md:p-8 border border-white">
+    
+    <!-- 標題區域 -->
+    <header class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-14 h-14 bg-pink-100 text-pink-500 rounded-2xl mb-3 shadow-inner">
+        <i class="fa-solid fa-heart text-2xl animate-pulse"></i>
+      </div>
+      <h1 class="text-2xl md:text-3xl font-extrabold text-gray-800 tracking-tight" id="mainTitle">好友默契大考驗</h1>
+      <p class="text-sm text-gray-500 mt-1" id="subTitle">出題給好友，測測看誰最懂你！</p>
+    </header>
+
+    <!-- 步驟 1: 出題者設定與自訂題庫 -->
+    <section id="creatorSection" class="space-y-6">
+      <div>
+        <label class="block text-sm font-bold text-gray-700 mb-1">你的名字 / 暱稱</label>
+        <input type="text" id="creatorNameInput" placeholder="例如：阿明、小美" 
+          class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition">
+      </div>
+
+      <!-- 快捷添加預設題目 -->
+      <div class="bg-pink-50/60 p-4 rounded-2xl border border-pink-100">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-pink-700 uppercase tracking-wide">快速加入靈感題庫</span>
+          <span class="text-xs text-pink-500">點擊即加入下方</span>
+        </div>
+        <div class="flex flex-wrap gap-2" id="presetContainer"></div>
+      </div>
+
+      <!-- 題目清單 -->
+      <div>
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-bold text-gray-800 text-base flex items-center gap-2">
+            <span>題目清單</span>
+            <span id="questionCountBadge" class="text-xs bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full font-semibold">0 題</span>
+          </h2>
+          <button onclick="addNewCustomQuestion()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1">
+            <i class="fa-solid fa-plus"></i> 新增自訂題目
+          </button>
+        </div>
+
+        <div id="questionsContainer" class="space-y-4 max-h-[460px] overflow-y-auto pr-1">
+          <!-- 動態生成的自訂題目卡片 -->
+        </div>
+      </div>
+
+      <button onclick="generateQuizLink()" class="w-full py-4 bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-pink-500/25 transition transform active:scale-[0.98]">
+        完成出題，產生專屬分享連結 🚀
+      </button>
+    </section>
+
+    <!-- 步驟 2: 分享連結彈出/展示 -->
+    <section id="shareSection" class="hidden text-center space-y-5">
+      <div class="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
+        <i class="fa-solid fa-check"></i>
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-gray-800">測驗已成功建立！</h2>
+        <p class="text-sm text-gray-500 mt-1">複製下方專屬連結，發送給好友或貼到 LINE / IG 吧！</p>
+      </div>
+
+      <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 flex items-center gap-2">
+        <input type="text" id="shareUrlInput" readonly class="bg-transparent text-xs text-gray-600 flex-1 outline-none select-all truncate">
+        <button onclick="copyShareUrl()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition whitespace-nowrap">
+          <i class="fa-regular fa-copy mr-1"></i> 複製
+        </button>
+      </div>
+
+      <div class="pt-2 flex flex-col gap-2">
+        <button onclick="previewQuiz()" class="w-full py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold rounded-xl transition text-sm">
+          以答題者身分立即測試 🎮
+        </button>
+        <button onclick="backToEdit()" class="text-xs text-gray-400 hover:text-gray-600">
+          返回繼續修改題目
+        </button>
+      </div>
+    </section>
+
+    <!-- 步驟 3: 好友作答頁面 (問答模式) -->
+    <section id="takerSection" class="hidden space-y-6">
+      <!-- 進入前：填寫姓名 -->
+      <div id="takerNameStep" class="space-y-4">
+        <div class="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100 text-center">
+          <p class="text-sm font-semibold text-indigo-900" id="takerIntroText">正在挑戰測驗...</p>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">你的名字 / 稱呼</label>
+          <input type="text" id="takerNameInput" placeholder="請輸入你的暱稱" 
+            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        </div>
+        <button onclick="startAnswering()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition">
+          開始挑戰！ 🔥
+        </button>
+      </div>
+
+      <!-- 正式作答卡片 -->
+      <div id="takerQuizStep" class="hidden space-y-5">
+        <div class="flex items-center justify-between text-xs text-gray-400 font-bold">
+          <span id="quizProgressText">第 1 / 5 題</span>
+          <span id="quizCreatorTag" class="text-indigo-500"></span>
+        </div>
+        
+        <!-- 進度條 -->
+        <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+          <div id="progressBar" class="bg-gradient-to-r from-pink-500 to-indigo-600 h-full w-0 transition-all duration-300"></div>
+        </div>
+
+        <div class="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+          <h3 id="currentQuestionTitle" class="text-lg font-bold text-gray-800 mb-4">題目文字</h3>
+          <div id="optionsList" class="space-y-2.5">
+            <!-- 動態選項按鈕 -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 步驟 4: 結算報告與對答案 -->
+    <section id="resultSection" class="hidden space-y-6 text-center">
+      <div class="p-6 bg-gradient-to-br from-indigo-50 to-pink-50 rounded-3xl border border-indigo-100 space-y-3">
+        <span class="text-4xl" id="resultEmoji">🎉</span>
+        <h2 class="text-xl font-extrabold text-gray-800" id="resultTitle">默契指數計算中</h2>
+        <div class="text-4xl md:text-5xl font-black text-indigo-600" id="resultScore">0%</div>
+        <p class="text-xs md:text-sm text-gray-500 font-medium" id="resultComment">評語載入中...</p>
+      </div>
+
+      <!-- 對答案清單 -->
+      <div class="text-left">
+        <h3 class="text-sm font-bold text-gray-700 mb-2">答題回顧與正確答案</h3>
+        <div id="reviewList" class="space-y-2 max-h-60 overflow-y-auto pr-1 text-xs"></div>
+      </div>
+
+      <div class="pt-2 flex flex-col gap-2">
+        <button onclick="createNewTest()" class="w-full py-3.5 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-md transition text-sm">
+          我也要自己出題！ ✍️
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // 預設題庫推薦
+    const PRESET_TEMPLATES = [
+      {
+        q: "我最常喝的手搖飲是什麼？",
+        options: ["無糖微冰四季春", "全糖珍珠奶茶", "多多綠茶", "鮮果茶類"]
+      },
+      {
+        q: "放假沒事時，我最可能在做什麼？",
+        options: ["在家睡到自然醒", "出門吃美食逛街", "狂滑手機追劇", "運動打球打遊戲"]
+      },
+      {
+        q: "如果突然有一筆大錢，我會先做什麼？",
+        options: ["買機票出國玩", "存起來或投資", "把購物車清空", "請好友吃大餐"]
+      },
+      {
+        q: "遇到壓力很煩的時候，我最習慣怎麼抒發？",
+        options: ["找朋友狂抱怨", "自己一個人靜靜放空", "狂吃好吃的食物", "睡一覺醒來再說"]
+      },
+      {
+        q: "我在朋友圈裡通常扮演什麼角色？",
+        options: ["負責發起行程的主揪", "負責隨和說好的跟班", "負責製造笑點的氣氛組", "冷靜分析的軍師"]
+      }
+    ];
+
+    // 出題者當前編輯的題目列表
+    let currentQuestions = [];
+    
+    // 答題者狀態
+    let activeQuizData = null;
+    let currentQuestionIdx = 0;
+    let userAnswers = [];
+
+    // 初始化頁面
+    window.addEventListener('DOMContentLoaded', () => {
+      renderPresets();
+      
+      // 檢查網址是否有 Quiz 數據
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#quiz=')) {
+        try {
+          const encodedData = hash.replace('#quiz=', '');
+          const decodedJson = decodeURIComponent(escape(atob(encodedData)));
+          activeQuizData = JSON.parse(decodedJson);
+          initTakerMode(activeQuizData);
+          return;
+        } catch (e) {
+          console.error("解析題目失敗", e);
+        }
+      }
+
+      // 預設載入前 3 題模板
+      for (let i = 0; i < 3; i++) {
+        addQuestionFromPreset(PRESET_TEMPLATES[i]);
+      }
+    });
+
+    // 渲染預設推薦標籤
+    function renderPresets() {
+      const container = document.getElementById('presetContainer');
+      container.innerHTML = '';
+      PRESET_TEMPLATES.forEach((item, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = "text-xs bg-white text-gray-700 hover:text-pink-600 hover:border-pink-300 border border-gray-200 px-2.5 py-1 rounded-lg transition truncate max-w-full";
+        btn.innerHTML = `<i class="fa-solid fa-plus text-[10px] mr-1 text-pink-400"></i> ${item.q}`;
+        btn.onclick = () => addQuestionFromPreset(item);
+        container.appendChild(btn);
+      });
+    }
+
+    // 加入預設題目
+    function addQuestionFromPreset(preset) {
+      currentQuestions.push({
+        q: preset.q,
+        options: [...preset.options],
+        answer: 0 // 預設第 0 個為正解
+      });
+      renderQuestionList();
+    }
+
+    // 新增自訂題目
+    function addNewCustomQuestion() {
+      currentQuestions.push({
+        q: "請輸入你的題目？",
+        options: ["選項 A", "選項 B", "選項 C", "選項 D"],
+        answer: 0
+      });
+      renderQuestionList();
+    }
+
+    // 渲染出題清單
+    function renderQuestionList() {
+      const container = document.getElementById('questionsContainer');
+      const badge = document.getElementById('questionCountBadge');
+      badge.textContent = `${currentQuestions.length} 題`;
+      container.innerHTML = '';
+
+      currentQuestions.forEach((qItem, qIdx) => {
+        const qCard = document.createElement('div');
+        qCard.className = "bg-gray-50 p-4 rounded-2xl border border-gray-200/80 space-y-3 relative group";
+        
+        let optionsHtml = '';
+        qItem.options.forEach((opt, optIdx) => {
+          const isCorrect = qItem.answer === optIdx;
+          optionsHtml += `
+            <div class="flex items-center gap-2">
+              <input type="radio" name="ans_${qIdx}" ${isCorrect ? 'checked' : ''} 
+                onchange="setCorrectAnswer(${qIdx}, ${optIdx})"
+                class="accent-pink-500 w-4 h-4 cursor-pointer" title="標記為你的答案">
+              <input type="text" value="${escapeHtml(opt)}" 
+                onchange="updateOptionText(${qIdx}, ${optIdx}, this.value)"
+                class="flex-1 text-xs px-2.5 py-1.5 rounded-lg border ${isCorrect ? 'border-pink-300 bg-pink-50/50 font-semibold' : 'border-gray-200 bg-white'} focus:outline-none focus:ring-1 focus:ring-pink-400">
+              ${qItem.options.length > 2 ? `
+                <button type="button" onclick="removeOption(${qIdx},${optIdx})" class="text-gray-300 hover:text-red-400 text-xs px-1">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              ` : ''}
+            </div>
+          `;
+        });
+
+        qCard.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-bold text-gray-400">#${qIdx + 1}</span>
+            <input type="text" value="${escapeHtml(qItem.q)}" 
+              onchange="updateQuestionTitle(${qIdx}, this.value)"
+              class="flex-1 font-bold text-sm bg-white border border-gray-200 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300 text-gray-800">
+            <button onclick="deleteQuestion(${qIdx})" class="text-gray-400 hover:text-red-500 transition px-1" title="刪除整題">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-[11px] text-gray-400 font-medium">點選圓圈以設定「你的真實正解」：</div>
+            ${optionsHtml}
+          </div>
+
+          ${qItem.options.length < 5 ? `
+            <button onclick="addOption(${qIdx})" class="text-[11px] text-indigo-500 hover:text-indigo-700 font-bold flex items-center gap-1 mt-1">
+              <i class="fa-solid fa-plus text-[9px]"></i> 增加選項
+            </button>
+          ` : ''}
+        `;
+        container.appendChild(qCard);
+      });
+    }
+
+    // 操作題目資料
+    function updateQuestionTitle(qIdx, val) { currentQuestions[qIdx].q = val; }
+    function updateOptionText(qIdx, optIdx, val) { currentQuestions[qIdx].options[optIdx] = val; }
+    function setCorrectAnswer(qIdx, optIdx) { currentQuestions[qIdx].answer = optIdx; renderQuestionList(); }
+    function deleteQuestion(qIdx) {
+      if (currentQuestions.length <= 1) {
+        alert("至少需要保留 1 道題目！");
+        return;
+      }
+      currentQuestions.splice(qIdx, 1);
+      renderQuestionList();
+    }
+    function addOption(qIdx) {
+      if (currentQuestions[qIdx].options.length < 5) {
+        currentQuestions[qIdx].options.push(`選項 ${String.fromCharCode(65 + currentQuestions[qIdx].options.length)}`);
+        renderQuestionList();
+      }
+    }
+    function removeOption(qIdx, optIdx) {
+      if (currentQuestions[qIdx].options.length <= 2) return;
+      currentQuestions[qIdx].options.splice(optIdx, 1);
+      if (currentQuestions[qIdx].answer >= currentQuestions[qIdx].options.length) {
+        currentQuestions[qIdx].answer = 0;
+      }
+      renderQuestionList();
+    }
+
+    // 產生分享連結
+    function generateQuizLink() {
+      const creatorName = document.getElementById('creatorNameInput').value.trim();
+      if (!creatorName) {
+        alert("請填寫你的名字或暱稱！");
+        document.getElementById('creatorNameInput').focus();
+        return;
+      }
+      if (currentQuestions.length === 0) {
+        alert("請至少設定一道題目！");
+        return;
+      }
+
+      const payload = {
+        creator: creatorName,
+        questions: currentQuestions
+      };
+
+      // Base64 編碼
+      const jsonStr = JSON.stringify(payload);
+      const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
+      const fullUrl = `${window.location.origin}${window.location.pathname}#quiz=${encoded}`;
+
+      document.getElementById('shareUrlInput').value = fullUrl;
+      document.getElementById('creatorSection').classList.add('hidden');
+      document.getElementById('shareSection').classList.remove('hidden');
+    }
+
+    function copyShareUrl() {
+      const input = document.getElementById('shareUrlInput');
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        alert("連結已成功複製！可以發送給朋友了！");
+      });
+    }
+
+    function backToEdit() {
+      document.getElementById('shareSection').classList.add('hidden');
+      document.getElementById('creatorSection').classList.remove('hidden');
+    }
+
+    function previewQuiz() {
+      window.location.hash = document.getElementById('shareUrlInput').value.split('#')[1];
+      location.reload();
+    }
+
+    // ===== 答題者模式邏輯 =====
+    function initTakerMode(quizData) {
+      document.getElementById('creatorSection').classList.add('hidden');
+      document.getElementById('shareSection').classList.add('hidden');
+      document.getElementById('takerSection').classList.remove('hidden');
+
+      document.getElementById('mainTitle').textContent = `誰最了解「${quizData.creator}」？`;
+      document.getElementById('subTitle').textContent = `來測測看你有多懂 ${quizData.creator} 吧！`;
+      document.getElementById('takerIntroText').textContent = `你即將回答 ${quizData.creator} 親自出的 ${quizData.questions.length} 道私密考題！`;
+    }
+
+    function startAnswering() {
+      const takerName = document.getElementById('takerNameInput').value.trim();
+      if (!takerName) {
+        alert("請先輸入你的名字！");
+        return;
+      }
+      document.getElementById('takerNameStep').classList.add('hidden');
+      document.getElementById('takerQuizStep').classList.remove('hidden');
+      
+      currentQuestionIdx = 0;
+      userAnswers = [];
+      showQuestion(0);
+    }
+
+    function showQuestion(idx) {
+      const q = activeQuizData.questions[idx];
+      const total = activeQuizData.questions.length;
+
+      document.getElementById('quizProgressText').textContent = `第 ${idx + 1} / ${total} 題`;
+      document.getElementById('quizCreatorTag').textContent = `@${activeQuizData.creator}`;
+      document.getElementById('progressBar').style.width = `${((idx + 1) / total) * 100}%`;
+      document.getElementById('currentQuestionTitle').textContent = q.q;
+
+      const optsContainer = document.getElementById('optionsList');
+      optsContainer.innerHTML = '';
+
+      q.options.forEach((optText, optIdx) => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-3.5 rounded-xl border border-gray-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/50 font-medium text-gray-700 transition flex items-center justify-between text-sm group";
+        btn.innerHTML = `
+          <span>${escapeHtml(optText)}</span>
+          <i class="fa-regular fa-circle-check text-gray-300 group-hover:text-indigo-500 transition"></i>
+        `;
+        btn.onclick = () => selectAnswer(optIdx);
+        optsContainer.appendChild(btn);
+      });
+    }
+
+    function selectAnswer(optIdx) {
+      userAnswers.push(optIdx);
+      if (currentQuestionIdx + 1 < activeQuizData.questions.length) {
+        currentQuestionIdx++;
+        showQuestion(currentQuestionIdx);
+      } else {
+        finishQuiz();
+      }
+    }
+
+    function finishQuiz() {
+      document.getElementById('takerSection').classList.add('hidden');
+      document.getElementById('resultSection').classList.remove('hidden');
+
+      const total = activeQuizData.questions.length;
+      let correctCount = 0;
+
+      const reviewList = document.getElementById('reviewList');
+      reviewList.innerHTML = '';
+
+      activeQuizData.questions.forEach((q, idx) => {
+        const userChoice = userAnswers[idx];
+        const isCorrect = userChoice === q.answer;
+        if (isCorrect) correctCount++;
+
+        const item = document.createElement('div');
+        item.className = `p-2.5 rounded-xl border ${isCorrect ? 'bg-green-50/60 border-green-200' : 'bg-red-50/60 border-red-200'}`;
+        item.innerHTML = `
+          <div class="font-bold text-gray-800 mb-1">${idx + 1}. ${escapeHtml(q.q)}</div>
+          <div class="flex flex-col gap-0.5">
+            <span class="${isCorrect ? 'text-green-700' : 'text-red-600'}">你的答案：${escapeHtml(q.options[userChoice])} ${isCorrect ? '✓' : '✗'}</span>
+            ${!isCorrect ? `<span class="text-gray-500 font-medium">${activeQuizData.creator} 的答案：${escapeHtml(q.options[q.answer])}</span>` : ''}
+          </div>
+        `;
+        reviewList.appendChild(item);
+      });
+
+      const scorePercent = Math.round((correctCount / total) * 100);
+      document.getElementById('resultScore').textContent = `${scorePercent}%`;
+
+      let title = "";
+      let comment = "";
+      let emoji = "";
+
+      if (scorePercent === 100) {
+        emoji = "🥇";
+        title = "神級知己！心靈相通！";
+        comment = `太神了！你完全猜透了 ${activeQuizData.creator} 的心思，肯定是鐵桿好朋友！`;
+      } else if (scorePercent >= 70) {
+        emoji = "✨";
+        title = "默契十足！超級麻吉！";
+        comment = `你們的感情非常深厚，對 ${activeQuizData.creator} 的喜好與習慣瞭若指掌！`;
+      } else if (scorePercent >= 40) {
+        emoji = "☕";
+        title = "普通朋友，潛力無窮！";
+        comment = `答對了一半左右！看來你們需要多約幾次聊天喝飲料囉！`;
+      } else {
+        emoji = "😂";
+        title = "塑料友情警告？！";
+        comment = `分數有點危險喔！快去請 ${activeQuizData.creator} 吃頓飯好好重新認識一下吧！`;
+      }
+
+      document.getElementById('resultEmoji').textContent = emoji;
+      document.getElementById('resultTitle').textContent = title;
+      document.getElementById('resultComment').textContent = comment;
+    }
+
+    function createNewTest() {
+      window.location.hash = '';
+      location.reload();
+    }
+
+    function escapeHtml(string) {
+      return String(string).replace(/[&<>"']/g, function (s) {
+        return {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        }[s];
+      });
+    }
+  </script>
+</body>
+</html>
